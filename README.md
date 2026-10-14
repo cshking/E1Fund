@@ -60,6 +60,29 @@ c:\Users\Administrator\.workbuddy\binaries\python\envs\e1fund\Scripts\python.exe
 
 > 若 5000 端口被占用，修改 `app.py` 末尾 `app.run(port=5000)` 为其他端口（如 8080）。
 
+## 部署到公网（让其他管理员可登录管理）
+
+> ⚠️ **GitHub Pages 只能托管纯静态网页，无法运行本系統的 Python 后端**，因此 github.io 无法直接提供"管理员登录/录入"功能。
+> 正确做法：以 **GitHub 仓库作为代码源**，连接一个支持 Python 的免费托管（如 Render），由它从仓库拉取代码自动部署成一个公网 Web 服务。代码始终在您的 GitHub 仓库里，管理员用生成的公网地址登录即可管理。
+
+### 方式 A：Render（推荐，免费，连 GitHub 仓库一键部署）
+1. 打开 https://render.com 注册并登录（可用 GitHub 账号授权）。
+2. 点 **New → Web Service** → 选择 **Connect a repository** → 授权并选择本仓库 `cshking/E1Fund`。
+3. 配置（仓库已自带 `render.yaml`，多数自动填好）：
+   - Runtime：**Python 3**
+   - Build Command：`pip install -r requirements.txt`
+   - Start Command：`gunicorn -w 1 -b 0.0.0.0:$PORT app:app`
+   - Plan：**Free**
+4. 点 **Create Web Service**，等待构建完成，Render 会给出一个形如 `https://e1fund-xxxx.onrender.com` 的公网地址。
+5. 部署后务必：到 Render 的 **Environment** 中把 `E1FUND_SECRET` 设为您自定义的随机串；并登录系统修改默认管理员 `admin/admin123`。
+
+### 方式 B：WorkBuddy 一键发布（已内置，最快）
+本系统已通过"发布为应用"发布，分享链接：https://e1fund.app.workbuddy.host/ （管理员登录 `/login`，默认 admin/admin123）。
+
+### 数据持久化说明
+- 部署实例使用内置 SQLite（`fund.db`），数据保存在托管实例磁盘上；**重新部署/改代码会重置为初始示例数据**（已内置 8 户集资款 273,220 元）。
+- 若需线上长期累积真实记录，建议将数据库改为云数据库（如 Supabase），或直接在本机局域网运行并定期备份 `fund.db` 与 `uploads/`。
+
 ## 默认管理员
 - 账号：`admin`  密码：`admin123`
 - **请登录后到"修改密码"立即修改。** 数据库 `fund.db` 中仅存密码哈希，不存明文。

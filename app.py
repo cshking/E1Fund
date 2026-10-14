@@ -684,5 +684,6 @@ def err(e):
 if __name__ == "__main__":
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     init_db()
-    # 0.0.0.0 便于同局域网手机/其他电脑访问；本机用 http://localhost:5000
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    # 0.0.0.0 便于同局域网/云端访问；端口优先取环境变量 PORT（发布到云端时由平台注入），默认 5000
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

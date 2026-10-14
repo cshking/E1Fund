@@ -1,0 +1,13 @@
+# 通过 GitHub 仓库一键部署到 Render（免费 Web 服务，公网可访问，管理员可登录管理）
+# 用法：Render 网站 → New → Web Service → Connect 此 GitHub 仓库(cshking/E1Fund) → Deploy
+services:
+  - type: web
+    name: e1fund
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT app:app
+    envVars:
+      - key: E1FUND_SECRET
+        generateValue: true   # 自动生成独立会话密钥，部署后可在 Render 环境变量中替换为自定义值
