@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}管理员登录 - {{ project }}{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:380px;margin:24px auto">
+  <h2>管理员登录</h2>
+  <form method="post" action="{{ url_for('login') }}">
+    <label>账号</label>
+    <input name="username" required autocomplete="username">
+    <label>密码</label>
+    <input name="password" type="password" required autocomplete="current-password">
+    <div style="margin-top:14px">
+      <button type="submit">登录</button>
+      <a class="btn ghost" href="{{ url_for('index') }}">返回公开页</a>
+    </div>
+  </form>
+  <p class="muted">登录后session/cookie生效，未登录无法访问管理功能。默认账号 admin / admin123，请尽快修改密码。</p>
+</div>
+{% endblock %}

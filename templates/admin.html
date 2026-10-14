@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}管理后台 - {{ project }}{% endblock %}
+{% block content %}
+<div class="cards">
+  <div class="card"><div class="k">总收入</div><div class="v inc">¥{{ '%.2f'|format(inc) }}</div></div>
+  <div class="card"><div class="k">总支出</div><div class="v exp">¥{{ '%.2f'|format(exp) }}</div></div>
+  <div class="card"><div class="k">账户余额</div><div class="v bal">¥{{ '%.2f'|format(bal) }}</div></div>
+</div>
+
+<div class="panel">
+  <h2>录入收支记录（佐证附件必填，≤5MB）</h2>
+  <form method="post" action="{{ url_for('add_record') }}" enctype="multipart/form-data">
+    <div class="row">
+      <div><label>日期</label><input type="date" name="date" value="{{ today }}" required></div>
+      <div><label>类型</label>
+        <select name="type" required>
+          <option value="income">收入</option>
+          <option value="expense">支出</option>
+        </select>
+      </div>
+      <div><label>金额（元）</label><input type="number" step="0.01" min="0.01" name="amount" required></div>
+    </div>
+    <label>事项说明</label>
+    <textarea name="description" placeholder="如：支付电梯公司第二期进度款 / 收到X户集资款" required></textarea>
+    <div class="row">
+      <div><label>经办人</label><input name="handler" placeholder="收款人或付款经办人" required></div>
+      <div><label>佐证附件（必填）</label><input type="file" name="attachment" accept="image/*,.pdf" required></div>
+    </div>
+    <div style="margin-top:12px"><button type="submit">保存记录</button></div>
+    <p class="muted">支持 png/jpg/jpeg/gif/webp/bmp/pdf/heic；文件须 ≤ 5MB，未上传附件无法提交。</p>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>我录入的记录（可修改/删除）</h2>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>日期</th><th>类型</th><th>金额</th><th>事项说明</th><th>经办人</th><th>佐证</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td>{{ r.date }}</td>
+        <td>{% if r.type=='income' %}<span class="tag income">收入</span>{% else %}<span class="tag expense">支出</span>{% endif %}</td>
+        <td class="amt">{% if r.type=='income' %}+{% else %}-{% endif %}{{ '%.2f'|format(r.amount) }}</td>
+        <td>{{ r.description }}</td>
+        <td>{{ r.handler }}</td>
+        <td>
+          {% if r.attachment %}
+            <a class="att-link" href="{{ url_for('uploads', filename=r.attachment) }}" target="_blank">查看</a>
+          {% else %}<span class="att-none">无</span>{% endif %}
+        </td>
+        <td>
+          <a class="btn ghost sm" href="{{ url_for('edit_record', rid=r.id) }}">修改</a>
+          <form method="post" action="{{ url_for('delete_record', rid=r.id) }}" style="display:inline"
+                onsubmit="return confirm('确认删除该记录？');">
+            <button class="danger sm" type="submit">删除</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted">暂无记录</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

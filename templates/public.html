@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}公开浏览 - {{ project }}{% endblock %}
+{% block content %}
+<div class="cards">
+  <div class="card"><div class="k">{% if filtered %}区间收入{% else %}总收入{% endif %}</div><div class="v inc">¥{{ '%.2f'|format(inc) }}</div></div>
+  <div class="card"><div class="k">{% if filtered %}区间支出{% else %}总支出{% endif %}</div><div class="v exp">¥{{ '%.2f'|format(exp) }}</div></div>
+  <div class="card"><div class="k">{% if filtered %}区间净额{% else %}账户余额{% endif %}</div><div class="v bal">¥{{ '%.2f'|format(net if filtered else bal) }}</div></div>
+</div>
+
+<div class="panel">
+  <h2>查询与导出（游客免登录）</h2>
+  <form method="get" action="{{ url_for('index') }}">
+    <div class="row">
+      <div><label>起始日期</label><input type="date" name="start" value="{{ start }}"></div>
+      <div><label>截止日期</label><input type="date" name="end" value="{{ end }}"></div>
+      <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap">
+        <button type="submit">查询</button>
+        <a class="btn ghost sm" href="{{ url_for('index') }}">显示全部</a>
+        <a class="btn ghost sm" href="{{ url_for('export_records', start=start, end=end) }}">导出电子表格</a>
+      </div>
+    </div>
+  </form>
+  <p class="muted">可按时间段筛选收支明细，并导出为 Excel 电子表格（.xlsx）供存档或核对；佐证附件供全体业主监督。</p>
+</div>
+
+<div class="panel">
+  <h2>资金收支明细（公开，业主可监督）{% if filtered %} · 当前区间{% endif %}</h2>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>日期</th><th>类型</th><th>金额</th><th>事项说明</th><th>经办人</th><th>佐证</th></tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td>{{ r.date }}</td>
+        <td>{% if r.type=='income' %}<span class="tag income">收入</span>{% else %}<span class="tag expense">支出</span>{% endif %}</td>
+        <td class="amt">{% if r.type=='income' %}+{% else %}-{% endif %}{{ '%.2f'|format(r.amount) }}</td>
+        <td>{{ r.description }}</td>
+        <td>{{ r.handler }}</td>
+        <td>
+          {% if r.attachment %}
+            <a class="att-link" href="{{ url_for('uploads', filename=r.attachment) }}" target="_blank">查看佐证</a>
+          {% else %}
+            <span class="att-none">无（初始导入）</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">暂无记录</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted">说明：本页为公开浏览，无需登录；佐证附件供全体业主监督。如需录入或修改记录，请由管理员登录。</p>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}修改记录 - {{ project }}{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:560px;margin:0 auto">
+  <h2>修改记录 #{{ rec.id }}</h2>
+  <form method="post" action="{{ url_for('edit_record', rid=rec.id) }}" enctype="multipart/form-data">
+    <div class="row">
+      <div><label>日期</label><input type="date" name="date" value="{{ rec.date }}" required></div>
+      <div><label>类型</label>
+        <select name="type" required>
+          <option value="income" {% if rec.type=='income' %}selected{% endif %}>收入</option>
+          <option value="expense" {% if rec.type=='expense' %}selected{% endif %}>支出</option>
+        </select>
+      </div>
+      <div><label>金额（元）</label><input type="number" step="0.01" min="0.01" name="amount" value="{{ rec.amount }}" required></div>
+    </div>
+    <label>事项说明</label>
+    <textarea name="description" required>{{ rec.description }}</textarea>
+    <label>经办人</label>
+    <input name="handler" value="{{ rec.handler }}" required>
+    <label>更换佐证附件（留空则保留原附件）</label>
+    <input type="file" name="attachment" accept="image/*,.pdf">
+    <div style="margin-top:6px">
+      {% if rec.attachment %}
+        <label style="display:flex;align-items:center;gap:6px;color:var(--text)">
+          <input type="checkbox" name="keep_attachment" value="0" style="width:auto">
+          同时删除原附件（不更换）
+        </label>
+        <p class="muted">当前附件：<a class="att-link" href="{{ url_for('uploads', filename=rec.attachment) }}" target="_blank">查看</a></p>
+      {% else %}
+        <p class="muted">当前无附件（初始导入记录）。</p>
+      {% endif %}
+    </div>
+    <div style="margin-top:14px">
+      <button type="submit">保存修改</button>
+      <a class="btn ghost" href="{{ url_for('admin_dashboard') }}">取消</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

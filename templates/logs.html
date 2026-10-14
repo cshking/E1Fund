@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}操作日志 - {{ project }}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h2>操作日志（审计留痕 · 最近 500 条）</h2>
+  <p class="muted">记录所有管理员的关键操作（登录/退出/增删改记录/改密码/账号管理/导出），含操作人、时间、IP，便于监督与追溯。</p>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>时间</th><th>操作人</th><th>操作</th><th>对象</th><th>详情</th><th>IP</th></tr>
+    </thead>
+    <tbody>
+      {% for l in logs %}
+      <tr>
+        <td>{{ l.created_at }}</td>
+        <td>{{ l.actor }}</td>
+        <td>{{ l.action }}</td>
+        <td>{% if l.target_type %}{{ l.target_type }}{% if l.target_id %}#{{ l.target_id }}{% endif %}{% else %}—{% endif %}</td>
+        <td>{{ l.detail or '—' }}</td>
+        <td>{{ l.ip or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">暂无日志</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}
