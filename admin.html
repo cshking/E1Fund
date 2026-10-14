@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理后台 - E1栋电梯公共资金收支管理系统</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <h1>金牛生态小区E1栋一单元电梯公共资金收支管理系统</h1>
+  <div class="sub">资金归集账户（收款人：潘在文） · 公开透明 · 业主可监督</div>
+</header>
+<nav class="nav" id="adminNav"></nav>
+<div id="flash" class="flash hidden"></div>
+<div class="wrap">
+
+  <!-- 登录视图 -->
+  <div class="panel" id="loginView">
+    <h2>管理员登录</h2>
+    <form onsubmit="return false">
+      <label>账号</label><input id="lu" placeholder="admin">
+      <label>密码</label><input id="lp" type="password" placeholder="默认 admin123">
+      <div style="margin-top:12px"><button id="btnLogin">登录</button></div>
+    </form>
+    <p class="muted">默认超管账号 admin / admin123，请登录后尽快修改密码。仅超管可管理其他管理员账号。</p>
+  </div>
+
+  <!-- 后台视图 -->
+  <div id="dashView" class="hidden">
+
+    <div id="panelMain">
+      <div class="cards">
+        <div class="card"><div class="k">总收入</div><div class="v inc" id="cInc">¥0.00</div></div>
+        <div class="card"><div class="k">总支出</div><div class="v exp" id="cExp">¥0.00</div></div>
+        <div class="card"><div class="k">账户余额</div><div class="v bal" id="cBal">¥0.00</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>录入资金记录</h2>
+        <form id="aForm" onsubmit="return false">
+          <div class="row">
+            <div><label>日期</label><input type="date" id="aDate"></div>
+            <div><label>类型</label>
+              <select id="aType"><option value="income">收入</option><option value="expense">支出</option></select>
+            </div>
+            <div><label>金额（元）</label><input type="number" id="aAmt" step="0.01" min="0.01"></div>
+          </div>
+          <label>事项说明</label><input id="aDesc" placeholder="如：支付电梯公司第二期进度款">
+          <label>经办人</label><input id="aHandler" placeholder="如：潘在文">
+          <label>佐证附件（必填，≤5MB：png/jpg/pdf 等）</label>
+          <input type="file" id="aAtt" accept="image/*,application/pdf">
+          <div style="margin-top:12px"><button id="btnAdd">保存记录</button></div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>我录入的记录</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>日期</th><th>类型</th><th>金额</th><th>事项说明</th><th>经办人</th><th>操作</th></tr></thead>
+            <tbody id="ownTb"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 超管：管理员管理 -->
+    <div id="panelUsers" class="panel hidden">
+      <h2>管理员管理（仅超管可操作）</h2>
+      <form id="nuForm" onsubmit="return false" class="row" style="margin-bottom:12px">
+        <div><label>新账号</label><input id="nu" placeholder="至少3位"></div>
+        <div><label>初始密码</label><input id="np" type="password" placeholder="至少6位"></div>
+        <div><label>显示名称</label><input id="nd" placeholder="选填"></div>
+        <div style="display:flex;align-items:flex-end"><button id="btnAddUser">创建管理员</button></div>
+      </form>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>账号</th><th>显示名</th><th>创建者</th><th>创建时间</th><th>操作</th></tr></thead>
+          <tbody id="userTb"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 超管：操作日志 -->
+    <div id="panelLogs" class="panel hidden">
+      <h2>操作日志（审计留痕）</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>时间</th><th>操作人</th><th>动作</th><th>对象</th><th>详情</th></tr></thead>
+          <tbody id="logTb"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 修改密码 -->
+    <div id="panelPw" class="panel hidden">
+      <h2>修改密码</h2>
+      <form id="pwForm" onsubmit="return false">
+        <label>原密码</label><input type="password" id="oPw">
+        <label>新密码</label><input type="password" id="nPw" placeholder="至少6位">
+        <label>确认新密码</label><input type="password" id="nPw2">
+        <div style="margin-top:12px"><button id="btnChangePw">修改密码</button></div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<!-- 编辑记录弹窗 -->
+<div id="editModal" class="modal-bg hidden">
+  <div class="modal">
+    <h3>修改记录</h3>
+    <input type="hidden" id="eId"><input type="hidden" id="eOld">
+    <label>日期</label><input type="date" id="eDate">
+    <label>类型</label><select id="eType"><option value="income">收入</option><option value="expense">支出</option></select>
+    <label>金额（元）</label><input type="number" id="eAmt" step="0.01" min="0.01">
+    <label>事项说明</label><input id="eDesc">
+    <label>经办人</label><input id="eHandler">
+    <label>更换佐证附件（留空则保留原附件；取消勾选"保留"则删除附件）</label>
+    <input type="file" id="eAtt" accept="image/*,application/pdf">
+    <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="eKeep" checked style="width:auto"> 保留原附件</label>
+    <div style="margin-top:12px;display:flex;gap:10px">
+      <button id="btnEdit">保存</button>
+      <button class="ghost" id="btnCancelEdit">取消</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/store.js"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>金牛生态小区E1栋一单元电梯公共资金收支管理系统（公开浏览）</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<header>
+  <h1>金牛生态小区E1栋一单元电梯公共资金收支管理系统</h1>
+  <div class="sub">资金归集账户（收款人：潘在文） · 公开透明 · 业主可监督</div>
+</header>
+<nav class="nav">
+  <a href="index.html">公开浏览（游客）</a>
+  <a href="admin.html">管理员登录</a>
+</nav>
+<div class="banner">
+  <b>纯静态版本</b>：本页运行在 GitHub Pages，<b>数据保存在您当前浏览器</b>（IndexedDB），更换设备或浏览器不共享。
+  如需多人共享的实时账本，请部署带后端的版本。本快照已内置 8 户集资款初始数据（合计 273,220 元）。
+</div>
+<div class="wrap">
+  <div class="cards">
+    <div class="card"><div class="k">总收入</div><div class="v inc" id="cInc">¥0.00</div></div>
+    <div class="card"><div class="k">总支出</div><div class="v exp" id="cExp">¥0.00</div></div>
+    <div class="card"><div class="k">账户余额</div><div class="v bal" id="cBal">¥0.00</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>查询与导出（游客免登录）</h2>
+    <div class="row">
+      <div><label>起始日期</label><input type="date" id="start"></div>
+      <div><label>截止日期</label><input type="date" id="end"></div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+      <button id="btnFilter">查询</button>
+      <button class="ghost" id="btnReset">显示全部</button>
+      <button class="ghost" id="btnExport">导出电子表格</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>资金收支明细（公开，业主可监督）</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>日期</th><th>类型</th><th>金额</th><th>事项说明</th><th>经办人</th><th>佐证</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="assets/store.js"></script>
+<script src="assets/public.js"></script>
+</body>
+</html>
