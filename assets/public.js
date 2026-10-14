@@ -1,4 +1,4 @@
-/* public.js —— 公开浏览页逻辑（游客免登录） */
+/* public.js —— 公开浏览页逻辑（游客免登录，读取仓库共享 data.json） */
 function fmt(n) { return Number(n).toFixed(2); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
@@ -75,11 +75,21 @@ function exportXlsx() {
   XLSX.writeFile(wb, 'E1电梯资金收支明细_' + ts + '.xlsx');
 }
 
+async function reload() {
+  try {
+    await Store.load();
+    ALL = Store.listRecords();
+    render(ALL);
+  } catch (e) {
+    document.getElementById('cInc').textContent = '读取失败';
+    console.error(e);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
-  await Store.ensureSeed();
-  ALL = await Store.listRecords();
-  render(ALL);
+  await reload();
   document.getElementById('btnFilter').onclick = applyFilter;
   document.getElementById('btnReset').onclick = () => { document.getElementById('start').value = ''; document.getElementById('end').value = ''; render(ALL); };
   document.getElementById('btnExport').onclick = exportXlsx;
+  document.getElementById('btnRefresh').onclick = reload;
 });

@@ -6,6 +6,7 @@
 <title>金牛生态小区E1栋一单元电梯公共资金收支管理系统（公开浏览）</title>
 <link rel="stylesheet" href="assets/style.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="assets/config.js"></script>
 </head>
 <body>
 <header>
@@ -17,8 +18,8 @@
   <a href="admin.html">管理员登录</a>
 </nav>
 <div class="banner">
-  <b>纯静态版本</b>：本页运行在 GitHub Pages，<b>数据保存在您当前浏览器</b>（IndexedDB），更换设备或浏览器不共享。
-  如需多人共享的实时账本，请部署带后端的版本。本快照已内置 8 户集资款初始数据（合计 273,220 元）。
+  <b>共享账本</b>：本页数据来自 GitHub 仓库中的 <code>data.json</code>，所有住户免登录即可查看，
+  管理员录入后<b>实时同步到同一份账本</b>，换设备、换人均可见。已内置 8 户集资款初始数据（合计 273,220 元）。
 </div>
 <div class="wrap">
   <div class="cards">
@@ -37,6 +38,7 @@
       <button id="btnFilter">查询</button>
       <button class="ghost" id="btnReset">显示全部</button>
       <button class="ghost" id="btnExport">导出电子表格</button>
+      <button class="ghost" id="btnRefresh">刷新数据</button>
     </div>
   </div>
 
@@ -50,6 +52,7 @@
     </div>
   </div>
 </div>
+<script src="assets/github.js"></script>
 <script src="assets/store.js"></script>
 <script src="assets/public.js"></script>
 </body>

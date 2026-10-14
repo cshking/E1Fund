@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "super": "cshking",
+  "admins": [
+    "cshking"
+  ],
+  "records": [
+    { "id": 1, "date": "2026-10-07", "type": "income", "amount": 30780, "handler": "潘在文（收款人）", "attachment": null, "created_by": "cshking", "created_at": "2026-10-07 09:00:00", "desc": "电梯安装集资款（户号 E1-402，户主 吴志铎（邓梅香缴款））：电梯安装集资款（33725? 实缴30780）" },
+    { "id": 2, "date": "2026-10-07", "type": "income", "amount": 37525, "handler": "潘在文（收款人）", "attachment": null, "created_by": "cshking", "created_at": "2026-10-07 09:00:00", "desc": "电梯安装集资款（户号 E1-501，户主 赵廷花）：电梯安装集资款（33725+3800）" },
+    { "id": 3, "date": "2026-10-07", "type": "income", "amount": 44270, "handler": "潘在文（收款人）", "attachment": null, "created_by": "cshking", "created_at": "2026-10-07 09:00:00", "desc": "电梯安装集资款（户号 E1-602，户主 潘在文）：电梯安装集资款（40470+3800）" },
+    { "id": 4, "date": "2026-10-07", "type": "income", "amount": 37525, "handler": "潘在文（收款人）", "attachment": null, "created_by": "cshking", "created_at": "2026-10-07 09:00:00", "desc": "电梯安装集资款（户号 E1-502，户主 颜约胜）：电梯安装集资款（33725+3800）" },
+    { "id": 5, "date": "2026-10-07", "type": "income", "amount": 30780, "handler": "潘在文（收款人）", "attachment": null, "created_by": "cshking", "created_at": "2026-10-07 09:00:00", "desc": "电梯安装集资款（户号 E1-401，户主 易家凡）：电梯安装集资款" },
+    { "id": 6, "date": "2026-10-07", "type": "income", "amount": 44270, "handler": "潘在文（收款人）", "attachment": null, "created_by": "cshking", "created_at": "2026-10-07 09:00:00", "desc": "电梯安装集资款（户号 E1-601，户主 付海燕）：电梯安装集资款（40470+3800）" },
+    { "id": 7, "date": "2026-10-07", "type": "income", "amount": 24035, "handler": "潘在文（收款人）", "attachment": null, "created_by": "cshking", "created_at": "2026-10-07 09:00:00", "desc": "电梯安装集资款（户号 E1-301，户主 罗玲茹）：电梯安装集资款" },
+    { "id": 8, "date": "2026-10-07", "type": "income", "amount": 24035, "handler": "潘在文（收款人）", "attachment": null, "created_by": "cshking", "created_at": "2026-10-07 09:00:00", "desc": "电梯安装集资款（户号 E1-302，户主 陈健尔）：电梯安装集资款" }
+  ],
+  "logs": [
+    { "id": 1, "actor": "cshking", "action": "初始化", "target_type": "system", "target_id": "", "detail": "导入8户集资款初始数据，合计273220元", "ip": "github", "created_at": "2026-10-07 09:00:00" }
+  ]
+}

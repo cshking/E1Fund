@@ -13,6 +13,7 @@ header .sub{font-size:12px;opacity:.85;margin-top:3px}
 .nav .me{color:var(--muted);margin-left:auto}
 .banner{background:#fff8e1;border-bottom:1px solid #f2e3b3;color:#8a6100;font-size:13px;padding:10px 16px}
 .banner b{color:#8a6100}
+.banner code,.dev-step code{background:#fff;border:1px solid #e7d9a8;border-radius:5px;padding:1px 6px;font-size:12px;color:#7a5600}
 .wrap{max-width:960px;margin:0 auto;padding:16px}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
@@ -47,6 +48,10 @@ button.sm{padding:5px 10px;font-size:12px}
 .att-link{color:var(--blue);text-decoration:none;font-size:12px;cursor:pointer}
 .att-none{color:var(--muted);font-size:12px}
 .hidden{display:none!important}
+.dev-box{background:#eef4ff;border:1px solid #cfe0ff;border-radius:10px;padding:14px;margin-top:14px}
+.dev-step{font-size:13px;margin:6px 0}
+.dev-step a{color:var(--blue)}
+.dev-code{font-size:26px;font-weight:700;letter-spacing:3px;color:var(--blue);background:#fff;border:2px dashed #9ec1ff;border-radius:8px;padding:10px 14px;display:inline-block;margin:4px 0}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
 .modal{background:#fff;border-radius:10px;padding:18px;width:100%;max-width:480px;max-height:90vh;overflow:auto}
 .modal h3{margin:0 0 10px}

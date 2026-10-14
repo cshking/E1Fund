@@ -1,27 +1,50 @@
-/* admin.js —— 管理后台逻辑（纯前端，数据存浏览器 IndexedDB） */
+/* admin.js —— 管理后台逻辑（GitHub 设备授权登录，数据存仓库 data.json）
+   身份 = GitHub 用户名；超管由 data.json 的 super 字段决定；管理员由 admins[] 白名单决定。不存储密码。 */
 function fmt(n) { return Number(n).toFixed(2); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function today() { return new Date().toISOString().slice(0, 10); }
-const MAX = 5 * 1024 * 1024;
+const MAX_ATT_BYTES = 900 * 1024;   // GitHub 单文件（Contents API）上限约 1MB，压缩后附件须在此之内
 
-function fileToDataURL(file) {
+// —— 附件处理：图片客户端压缩（最大边 1280px、JPEG 0.82），非图片直接 base64 并限大小 ——
+function readAsDataURL(file) {
+  return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => rej(new Error('文件读取失败')); fr.readAsDataURL(file); });
+}
+function approxBytes(dataUrl) { try { return atob(dataUrl.split(',')[1]).length; } catch (e) { return dataUrl.length; } }
+function compressImage(file) {
   return new Promise((res, rej) => {
-    if (file.size > MAX) return rej(new Error('附件超过 5MB 上限'));
-    const fr = new FileReader();
-    fr.onload = () => res(fr.result);
-    fr.onerror = () => rej(fr.error);
-    fr.readAsDataURL(file);
+    readAsDataURL(file).then(src => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1280; let w = img.width, h = img.height;
+        if (w > max || h > max) { const r = Math.min(max / w, max / h); w = Math.round(w * r); h = Math.round(h * r); }
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        const out = cv.toDataURL('image/jpeg', 0.82);
+        if (approxBytes(out) > MAX_ATT_BYTES) return rej(new Error('图片压缩后仍超过 ' + (MAX_ATT_BYTES / 1024).toFixed(0) + 'KB，请换更小或更清晰的图片'));
+        res(out);
+      };
+      img.onerror = () => rej(new Error('图片解析失败'));
+      img.src = src;
+    }).catch(rej);
   });
 }
+async function fileToDataURL(file) {
+  if (!file) return null;
+  if (file.type.startsWith('image/')) return await compressImage(file);
+  const url = await readAsDataURL(file);
+  if (approxBytes(url) > MAX_ATT_BYTES) throw new Error('非图片附件过大（' + (approxBytes(url) / 1024).toFixed(0) + 'KB），GitHub 单文件上限约 1MB，请压缩/裁剪后再上传');
+  return url;
+}
+
+function curUser() { return GH.getUser(); }
 
 async function refreshNav() {
-  const u = Store.getSession();
+  const u = curUser();
   const nav = document.getElementById('adminNav');
   if (!u) { nav.innerHTML = ''; return; }
   let html = '<a href="index.html">公开浏览</a><a href="admin.html">管理后台</a>';
-  if (Store.isSuper()) html += '<a href="#" onclick="goto(\'users\')">管理员管理</a><a href="#" onclick="goto(\'logs\')">操作日志</a>';
-  html += '<a href="#" onclick="changePwView()">修改密码</a>';
-  html += '<span class="me">管理员：' + esc(u) + (Store.isSuper() ? '（超管）' : '') + ' · <a href="#" onclick="logout()">退出</a></span>';
+  if (Store.isSuper(u)) html += '<a href="#" onclick="goto(\'users\')">管理员管理</a><a href="#" onclick="goto(\'logs\')">操作日志</a>';
+  html += '<span class="me">GitHub：@' + esc(u) + (Store.isSuper(u) ? '（超管）' : '') + ' · <a href="#" onclick="logout()">退出</a></span>';
   nav.innerHTML = html;
 }
 
@@ -29,7 +52,6 @@ function goto(view) {
   document.getElementById('panelUsers').classList.toggle('hidden', view !== 'users');
   document.getElementById('panelLogs').classList.toggle('hidden', view !== 'logs');
   document.getElementById('panelMain').classList.toggle('hidden', view !== 'main');
-  document.getElementById('panelPw').classList.add('hidden');
   if (view === 'users') renderUsers();
   if (view === 'logs') renderLogs();
 }
@@ -38,21 +60,39 @@ function showFlash(msg, ok) {
   const f = document.getElementById('flash');
   f.textContent = msg; f.className = 'flash ' + (ok ? 'ok' : 'warn');
   f.classList.remove('hidden');
-  setTimeout(() => f.classList.add('hidden'), 3500);
+  setTimeout(() => f.classList.add('hidden'), 4000);
 }
 
-async function login() {
-  const u = document.getElementById('lu').value.trim();
-  const p = document.getElementById('lp').value;
-  const user = await Store.getUser(u);
-  if (user && !user.disabled && (await Store.hashPassword(p)) === user.hash) {
-    Store.setSession(u); await Store.addLog(u, '登录成功'); showDash();
-  } else { showFlash('账号或密码错误', false); }
+// —— 登录：GitHub 设备授权 ——
+async function githubLogin() {
+  if (!GH.getToken()) {
+    showFlash('正在发起 GitHub 授权，请按提示在浏览器中输入验证码…', true);
+    try {
+      await GH.login(onCode);   // 成功后内部已保存令牌与用户名
+    } catch (e) {
+      showFlash(e.message, false); hideDev(); return;
+    }
+  }
+  const user = curUser();
+  try { await Store.load(); } catch (e) { showFlash('读取共享数据失败：' + e.message, false); return; }
+  if (!Store.isAdmin(user)) {
+    showFlash('GitHub 账号 @' + user + ' 不在管理员白名单中，请联系超管添加', false);
+    GH.clearAuth(); hideDev(); showLogin(); return;
+  }
+  hideDev(); showDash();
 }
+function onCode(dev) {
+  const box = document.getElementById('devBox');
+  box.classList.remove('hidden');
+  document.getElementById('devCode').textContent = dev.user_code || '——';
+  document.getElementById('devUri').textContent = dev.verification_uri || 'https://github.com/login/device';
+  const link = document.getElementById('devLink');
+  link.href = dev.verification_uri_complete || (dev.verification_uri || 'https://github.com/login/device');
+}
+function hideDev() { const b = document.getElementById('devBox'); if (b) b.classList.add('hidden'); }
+
 function logout() {
-  const u = Store.getSession();
-  if (u) Store.addLog(u, '退出登录');
-  Store.clearSession(); showLogin();
+  GH.clearAuth(); showLogin();
 }
 async function showDash() {
   document.getElementById('loginView').classList.add('hidden');
@@ -64,12 +104,13 @@ async function showDash() {
 function showLogin() {
   document.getElementById('dashView').classList.add('hidden');
   document.getElementById('loginView').classList.remove('hidden');
+  hideDev();
   refreshNav();
 }
 
 async function renderMain() {
-  const u = Store.getSession();
-  const all = await Store.listRecords();
+  const u = curUser();
+  const all = Store.listRecords();
   const inc = all.filter(r => r.type === 'income').reduce((s, r) => s + r.amount, 0);
   const exp = all.filter(r => r.type === 'expense').reduce((s, r) => s + r.amount, 0);
   document.getElementById('cInc').textContent = '¥' + fmt(inc);
@@ -89,7 +130,8 @@ async function renderMain() {
   }
 }
 function viewAtt(id) {
-  Store.getRecord(id).then(r => { if (r && r.attachment) { const w = window.open(''); w.document.write('<title>佐证</title><body style="margin:0"><img style="max-width:100%" src="' + r.attachment + '"></body>'); } });
+  const r = Store.getRecord(id);
+  if (r && r.attachment) { const w = window.open(''); w.document.write('<title>佐证</title><body style="margin:0"><img style="max-width:100%" src="' + r.attachment + '"></body>'); }
 }
 
 async function doAdd() {
@@ -98,17 +140,20 @@ async function doAdd() {
     desc = document.getElementById('aDesc').value.trim(), handler = document.getElementById('aHandler').value.trim();
   if (!date || !desc || !handler || !(amount > 0)) return showFlash('请完整填写日期/类型/金额/事项/经办人', false);
   const f = document.getElementById('aAtt').files[0];
-  if (!f) return showFlash('佐证附件为必填项，请上传', false);
+  if (!f) return showFlash('佐证附件为必填项，请上传（图片将自动压缩）', false);
   let data;
   try { data = await fileToDataURL(f); } catch (e) { return showFlash(e.message, false); }
-  await Store.addRecord({ date, type, amount, desc, handler, attachment: data, created_by: Store.getSession() });
-  showFlash('记录已保存（含佐证附件）', true);
-  document.getElementById('aForm').reset(); document.getElementById('aDate').value = today();
-  await renderMain();
+  showFlash('正在提交到 GitHub 仓库…', true);
+  try {
+    await Store.addRecord({ date, type, amount, desc, handler, attachment: data, created_by: curUser() });
+    showFlash('记录已保存（含佐证附件，已同步到共享账本）', true);
+    document.getElementById('aForm').reset(); document.getElementById('aDate').value = today();
+    await renderMain();
+  } catch (e) { showFlash('保存失败：' + e.message, false); }
 }
 
 async function openEdit(id) {
-  const r = await Store.getRecord(id);
+  const r = Store.getRecord(id);
   if (!r) return;
   document.getElementById('eId').value = r.id;
   document.getElementById('eDate').value = r.date;
@@ -122,8 +167,8 @@ async function openEdit(id) {
 function closeEdit() { document.getElementById('editModal').classList.add('hidden'); }
 async function doEdit() {
   const id = parseInt(document.getElementById('eId').value);
-  const r = await Store.getRecord(id);
-  if (r.created_by !== Store.getSession()) return showFlash('只能修改自己的记录', false);
+  const r = Store.getRecord(id);
+  if (r.created_by !== curUser()) return showFlash('只能修改自己的记录', false);
   r.date = document.getElementById('eDate').value;
   r.type = document.getElementById('eType').value;
   r.amount = parseFloat(document.getElementById('eAmt').value);
@@ -131,95 +176,72 @@ async function doEdit() {
   r.handler = document.getElementById('eHandler').value.trim();
   const f = document.getElementById('eAtt').files[0];
   if (f) {
-    if (f.size > MAX) return showFlash('附件超过 5MB 上限', false);
-    r.attachment = await fileToDataURL(f);
+    try { r.attachment = await fileToDataURL(f); } catch (e) { return showFlash(e.message, false); }
   } else if (!document.getElementById('eKeep').checked) {
     r.attachment = null;
   }
-  await Store.updateRecord(r);
-  closeEdit(); showFlash('记录已更新', true); await renderMain();
+  showFlash('正在提交到 GitHub 仓库…', true);
+  try { await Store.updateRecord(r); closeEdit(); showFlash('记录已更新', true); await renderMain(); }
+  catch (e) { showFlash('更新失败：' + e.message, false); }
 }
 async function doDel(id) {
-  const r = await Store.getRecord(id);
-  if (r.created_by !== Store.getSession()) return showFlash('只能删除自己的记录', false);
+  const r = Store.getRecord(id);
+  if (r.created_by !== curUser()) return showFlash('只能删除自己的记录', false);
   if (!confirm('确定删除该记录？')) return;
-  await Store.deleteRecord(r); showFlash('记录已删除', true); await renderMain();
+  showFlash('正在提交到 GitHub 仓库…', true);
+  try { await Store.deleteRecord(r); showFlash('记录已删除', true); await renderMain(); }
+  catch (e) { showFlash('删除失败：' + e.message, false); }
 }
 
+// —— 管理员白名单管理（仅超管）——
 async function renderUsers() {
-  const users = await Store.listUsers();
+  const me = curUser();
+  const admins = Store.listAdmins();
   const tb = document.getElementById('userTb'); tb.innerHTML = '';
-  for (const u of users) {
-    const act = (u.username === Store.getSession())
+  for (const u of admins) {
+    const isSuper = (u === Store.getSuper());
+    const act = (u === me)
       ? '<span class="muted">当前账号</span>'
-      : '<a class="att-link" onclick="doDelUser(\'' + u.username + '\')">删除</a> <a class="att-link" onclick="doResetPw(\'' + u.username + '\')">重置密码</a>';
-    tb.innerHTML += '<tr><td>' + esc(u.username) + (u.username === Store.SUPER ? '（超管）' : '') + '</td><td>' +
-      esc(u.display_name || '') + '</td><td>' + esc(u.created_by || '') + '</td><td>' + esc(u.created_at || '') +
-      '</td><td>' + act + '</td></tr>';
+      : (isSuper ? '<span class="muted">超管（不可移除）</span>' : '<a class="att-link" onclick="doDelUser(\'' + u + '\')">移除</a>');
+    tb.innerHTML += '<tr><td>@' + esc(u) + (isSuper ? '（超管）' : '') + '</td><td>' +
+      (isSuper ? '超级管理员' : '管理员') + '</td><td>' + act + '</td></tr>';
   }
 }
 async function doAddUser() {
-  const un = document.getElementById('nu').value.trim(), pw = document.getElementById('np').value, dn = document.getElementById('nd').value.trim();
-  if (un.length < 3) return showFlash('账号至少3位', false);
-  if (pw.length < 6) return showFlash('密码至少6位', false);
-  if (await Store.getUser(un)) return showFlash('该账号已存在', false);
-  await Store.addUser({ username: un, hash: await Store.hashPassword(pw), display_name: dn || un, created_by: Store.getSession(), created_at: Store.now(), disabled: 0 });
-  showFlash('管理员账号已创建', true);
-  document.getElementById('nuForm').reset(); renderUsers();
+  const un = document.getElementById('nu').value.trim().replace(/^@/, '');
+  if (un.length < 1) return showFlash('请填写 GitHub 用户名', false);
+  if (Store.listAdmins().indexOf(un) >= 0) return showFlash('该账号已在白名单中', false);
+  showFlash('正在提交到 GitHub 仓库…', true);
+  try { await Store.addAdmin(un, curUser()); showFlash('已添加管理员 @' + un, true); document.getElementById('nuForm').reset(); renderUsers(); }
+  catch (e) { showFlash('添加失败：' + e.message, false); }
 }
 async function doDelUser(un) {
-  const users = await Store.listUsers();
-  if (users.length <= 1) return showFlash('至少保留一个管理员账号', false);
-  if (!confirm('删除管理员 ' + un + '？')) return;
-  await Store.deleteUser(un); showFlash('已删除管理员 ' + un, true); renderUsers();
-}
-async function doResetPw(un) {
-  const pw = prompt('为 ' + un + ' 设置新密码（至少6位）：');
-  if (!pw) return;
-  if (pw.length < 6) return showFlash('密码至少6位', false);
-  const u = await Store.getUser(un);
-  u.hash = await Store.hashPassword(pw);
-  await Store.updateUser(u);
-  await Store.addLog(Store.getSession(), '重置密码', 'user', un, '账号 ' + un);
-  showFlash('已重置 ' + un + ' 密码', true);
+  if (!confirm('将 @' + un + ' 移出管理员白名单？')) return;
+  showFlash('正在提交到 GitHub 仓库…', true);
+  try { await Store.removeAdmin(un, curUser()); showFlash('已移除管理员 @' + un, true); renderUsers(); }
+  catch (e) { showFlash('移除失败：' + e.message, false); }
 }
 
 async function renderLogs() {
-  const ls = await Store.listLogs();
+  const ls = Store.listLogs();
   const tb = document.getElementById('logTb'); tb.innerHTML = '';
   if (!ls.length) { tb.innerHTML = '<tr><td colspan="5" class="muted">暂无日志</td></tr>'; return; }
   for (const l of ls) {
-    tb.innerHTML += '<tr><td>' + esc(l.created_at) + '</td><td>' + esc(l.actor) + '</td><td>' + esc(l.action) +
+    tb.innerHTML += '<tr><td>' + esc(l.created_at) + '</td><td>@' + esc(l.actor) + '</td><td>' + esc(l.action) +
       '</td><td>' + esc(l.target_type) + (l.target_id ? ' #' + esc(l.target_id) : '') + '</td><td>' + esc(l.detail) + '</td></tr>';
   }
 }
 
-function changePwView() {
-  document.getElementById('panelMain').classList.add('hidden');
-  document.getElementById('panelUsers').classList.add('hidden');
-  document.getElementById('panelLogs').classList.add('hidden');
-  document.getElementById('panelPw').classList.remove('hidden');
-}
-async function doChangePw() {
-  const u = await Store.getUser(Store.getSession());
-  const old = document.getElementById('oPw').value, n1 = document.getElementById('nPw').value, n2 = document.getElementById('nPw2').value;
-  if ((await Store.hashPassword(old)) !== u.hash) return showFlash('原密码错误', false);
-  if (n1 !== n2 || n1.length < 6) return showFlash('两次新密码不一致或不足6位', false);
-  u.hash = await Store.hashPassword(n1);
-  await Store.updateUser(u); await Store.addLog(u.username, '修改密码');
-  showFlash('密码已修改', true);
-  document.getElementById('pwForm').reset();
-  goto('main');
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
-  await Store.ensureSeed();
   document.getElementById('aDate').value = today();
-  document.getElementById('btnLogin').onclick = login;
+  document.getElementById('btnLogin').onclick = githubLogin;
   document.getElementById('btnAdd').onclick = doAdd;
   document.getElementById('btnCancelEdit').onclick = closeEdit;
   document.getElementById('btnEdit').onclick = doEdit;
   document.getElementById('btnAddUser').onclick = doAddUser;
-  document.getElementById('btnChangePw').onclick = doChangePw;
-  if (Store.getSession()) showDash(); else showLogin();
+  if (curUser()) {
+    try { await Store.load(); if (Store.isAdmin(curUser())) { showDash(); return; } } catch (e) {}
+    GH.clearAuth();
+  }
+  showLogin();
 });

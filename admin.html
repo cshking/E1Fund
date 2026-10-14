@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>管理后台 - E1栋电梯公共资金收支管理系统</title>
 <link rel="stylesheet" href="assets/style.css">
+<script src="assets/config.js"></script>
 </head>
 <body>
 <header>
@@ -17,13 +18,21 @@
 
   <!-- 登录视图 -->
   <div class="panel" id="loginView">
-    <h2>管理员登录</h2>
-    <form onsubmit="return false">
-      <label>账号</label><input id="lu" placeholder="admin">
-      <label>密码</label><input id="lp" type="password" placeholder="默认 admin123">
-      <div style="margin-top:12px"><button id="btnLogin">登录</button></div>
-    </form>
-    <p class="muted">默认超管账号 admin / admin123，请登录后尽快修改密码。仅超管可管理其他管理员账号。</p>
+    <h2>管理员登录（GitHub 设备授权）</h2>
+    <p class="muted">本系统用 <b>GitHub 账号</b> 作为管理员身份，无需密码、无需粘贴令牌。点击登录后，浏览器会显示一组验证码，
+      请在另一窗口打开 GitHub 设备授权页输入即可。</p>
+    <div style="margin-top:12px"><button id="btnLogin">用 GitHub 登录</button></div>
+
+    <div id="devBox" class="dev-box hidden">
+      <div class="dev-step">① 打开 <a id="devLink" href="https://github.com/login/device" target="_blank" rel="noopener">GitHub 设备授权页</a></div>
+      <div class="dev-step">② 输入以下验证码（区分大小写）：</div>
+      <div class="dev-code" id="devCode">——</div>
+      <div class="dev-step">授权地址：<code id="devUri">https://github.com/login/device</code></div>
+      <div class="dev-step muted">授权成功后将自动登录，请勿关闭本页面。</div>
+    </div>
+
+    <p class="muted" style="margin-top:14px">仅被加入白名单的 GitHub 账号可登录；超管（仓库初始所有者）可添加/移除其他管理员。
+      若提示不在白名单，请联系超管把你的 GitHub 用户名加入 <code>data.json</code> 的 admins 列表。</p>
   </div>
 
   <!-- 后台视图 -->
@@ -48,7 +57,7 @@
           </div>
           <label>事项说明</label><input id="aDesc" placeholder="如：支付电梯公司第二期进度款">
           <label>经办人</label><input id="aHandler" placeholder="如：潘在文">
-          <label>佐证附件（必填，≤5MB：png/jpg/pdf 等）</label>
+          <label>佐证附件（必填，≤5MB：png/jpg/pdf 等；图片将自动压缩以便同步）</label>
           <input type="file" id="aAtt" accept="image/*,application/pdf">
           <div style="margin-top:12px"><button id="btnAdd">保存记录</button></div>
         </form>
@@ -69,14 +78,12 @@
     <div id="panelUsers" class="panel hidden">
       <h2>管理员管理（仅超管可操作）</h2>
       <form id="nuForm" onsubmit="return false" class="row" style="margin-bottom:12px">
-        <div><label>新账号</label><input id="nu" placeholder="至少3位"></div>
-        <div><label>初始密码</label><input id="np" type="password" placeholder="至少6位"></div>
-        <div><label>显示名称</label><input id="nd" placeholder="选填"></div>
-        <div style="display:flex;align-items:flex-end"><button id="btnAddUser">创建管理员</button></div>
+        <div style="flex:2;min-width:160px"><label>新增管理员 GitHub 用户名</label><input id="nu" placeholder="如 anotheruser"></div>
+        <div style="display:flex;align-items:flex-end"><button id="btnAddUser">添加管理员</button></div>
       </form>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>账号</th><th>显示名</th><th>创建者</th><th>创建时间</th><th>操作</th></tr></thead>
+          <thead><tr><th>GitHub 账号</th><th>角色</th><th>操作</th></tr></thead>
           <tbody id="userTb"></tbody>
         </table>
       </div>
@@ -91,17 +98,6 @@
           <tbody id="logTb"></tbody>
         </table>
       </div>
-    </div>
-
-    <!-- 修改密码 -->
-    <div id="panelPw" class="panel hidden">
-      <h2>修改密码</h2>
-      <form id="pwForm" onsubmit="return false">
-        <label>原密码</label><input type="password" id="oPw">
-        <label>新密码</label><input type="password" id="nPw" placeholder="至少6位">
-        <label>确认新密码</label><input type="password" id="nPw2">
-        <div style="margin-top:12px"><button id="btnChangePw">修改密码</button></div>
-      </form>
     </div>
 
   </div>
@@ -127,6 +123,7 @@
   </div>
 </div>
 
+<script src="assets/github.js"></script>
 <script src="assets/store.js"></script>
 <script src="assets/admin.js"></script>
 </body>
