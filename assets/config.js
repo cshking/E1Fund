@@ -6,6 +6,6 @@ window.APP = {
   DATA_PATH: 'data.json',    // 共享数据文件名（放在仓库根）
   // GitHub OAuth App 的 client_id（在 GitHub → Settings → Developer settings → OAuth Apps 新建一个，
   // 无需填 Callback，拿到 Client ID 粘贴到这里）。仅需公开 client_id，无需密钥。
-  CLIENT_ID: 'YOUR_OAUTH_APP_CLIENT_ID',
+  CLIENT_ID: 'Ov23liX5vuOHJkEJLsmo',
   SCOPE: 'public_repo'        // 公开仓库写权限（足够）
 };
